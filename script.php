@@ -11,6 +11,22 @@ function checkArgument($arg)
     return;
 }
 
+function handleArguments($argc, $argv){
+    $input = "/--input=\"*(.*\.txt)\"*/";
+    $output = "/--output=\"*(.*\.txt)\"*/";
+    for($i = 1; $i < $argc; $i++){
+        if(preg_match($input, $argv[$i], $match1)){
+            $nameI = $match1[1];
+            echo "dostal jsem input : " . $nameI . "\n";
+        }
+        elseif(preg_match($output, $argv[$i],$match2)){
+            $nameO = $match2[1];
+            echo "dostal jsem output : " . $nameO . "\n";
+        }
+        else return 0;
+    }
+    return 1;
+}
 function checkInput($io)
 {
     //handle file open and check argument
@@ -43,8 +59,11 @@ elseif ((preg_match("/--cmd=(.*)/", $argv[1], $match)) && ($argc == 2)) {
     file_put_contents("555.txt", $content);
 }
 elseif (($argv[1] == "-r") && ($argc == 2)) echo "nope";
-elseif ((preg_match("/--input=\"*(.*\.txt)\"*/", $argv[1])) && ($argc == 2)) $fIn = checkInput($argv[1]);
-elseif ((preg_match("/--output=\"*(.*\.txt)\"*/", $argv[1])) && ($argc == 2)) $fOut = checkOutput($argv[1]);
-else echo "chyba";
+else{
+    if(handleArguments($argc, $argv)){
+        echo "probehlo ok";
+    }
+    else echo "probehlo spatne";
+}
 ?>
 
