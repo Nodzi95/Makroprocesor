@@ -11,59 +11,139 @@ function checkArgument($arg)
     return;
 }
 
-function handleArguments($argc, $argv){
+function handleArguments($argc, $argv)
+{
     $input = "/--input=\"*(.*\.txt)\"*/";
     $output = "/--output=\"*(.*\.txt)\"*/";
-    for($i = 1; $i < $argc; $i++){
-        if(preg_match($input, $argv[$i], $match1)){
+    $text = "/--cmd=(.*)/";
+    $countI = 0;
+    $countO = 0;
+    for ($i = 1; $i < $argc; $i++) {
+        if ((preg_match($input, $argv[$i], $match1)) && ($countI == 0)) {
             $nameI = $match1[1];
-            echo "dostal jsem input : " . $nameI . "\n";
-        }
-        elseif(preg_match($output, $argv[$i],$match2)){
+            $GLOBALS['fileI'] = $nameI;
+            $countI += 1;
+            //echo "dostal jsem input : " . $nameI . "\n";
+        } elseif ((preg_match($output, $argv[$i], $match2)) && ($countO == 0)) {
             $nameO = $match2[1];
-            echo "dostal jsem output : " . $nameO . "\n";
-        }
-        else return 0;
+            $GLOBALS['fileO'] = $nameO;
+            $countO += 1;
+            //echo "dostal jsem output : " . $nameO . "\n";
+        } elseif ($argv[$i] == "-r") {
+            echo "redefinition \n";
+        } elseif (preg_match($text, $argv[$i], $match)) {
+            $file = file_get_contents($GLOBALS['fileO']);
+            $content = $match[1] . $file;
+            file_put_contents($GLOBALS['fileO'], $content);
+        } else return 0;
     }
     return 1;
 }
-function checkInput($io)
-{
-    //handle file open and check argument
-    $input = "/--input=\"*(.*\.txt)\"*/";
 
-    if (preg_match($input, $io, $match)) {
-        $io = $match[1];
-        if (file_exists($io)) {
-            return $io;
-        } else echo "File not found.";
-    } else echo "koncis";
 
-}
-
-function checkOutput($io)
-{
-    $output = "/--output=\"*(.*\.txt)\"*/";
-    if (preg_match($output, $io, $match)) {
-        $io = $match[1];
-        if (file_exists($io)) {
-            return $io;
-        } else echo "File not found.";
-    } else echo "koncis";
-}
-
+$GLOBALS['fileI'] = "";
+$GLOBALS['fileO'] = "";
+$fileO = "";
 if (($argv[1] == "--help") && ($argc == 2)) echo "help";
-elseif ((preg_match("/--cmd=(.*)/", $argv[1], $match)) && ($argc == 2)) {
-    $file = file_get_contents("555.txt");
-    $content = $match[1] . $file;
-    file_put_contents("555.txt", $content);
-}
-elseif (($argv[1] == "-r") && ($argc == 2)) echo "nope";
-else{
-    if(handleArguments($argc, $argv)){
-        echo "probehlo ok";
+else {
+    if (handleArguments($argc, $argv)) {
+        echo "probehlo ok\n";
+        echo $GLOBALS['fileO'];
+        echo $GLOBALS['fileI'];
+    } else{
+        echo "bad";
+        return 1;
     }
-    else echo "probehlo spatne";
+
+    $fO = fopen($GLOBALS['fileO'], "w");
+    $fI = fopen($GLOBALS['fileI'], "r");
+
+    $state = 0;
+    $repeat = 1;
+    while ($repeat) {
+        $znak = fgetc($fI);
+        //echo $state;
+        switch ($state) {
+            case 0:
+                if ($znak == '$') {
+                    fprintf(STDERR, "Syntakticka chyba\n");
+                    return 55;
+                } elseif ($znak == '@') {
+                    $znak = fgetc($fI);
+                    if ($znak == '@') fwrite($fO, "@");
+                    elseif ($znak == '{') fwrite($fO, "{");
+                    elseif ($znak == '}') fwrite($fO, "}");
+                    elseif ($znak == '$') fwrite($fO, "$");
+                    else {
+                        fseek($fI, -1, SEEK_CUR);
+                        $state = 1;
+                    }
+                    break;
+                } elseif ($znak == '{') {
+                    $counter = 0;
+                    $state = 3;
+                    break;
+                } elseif ($znak == '}') {
+                    fprintf(STDERR, "Syntakticka chyba\n");
+                    return 55;
+                }
+                elseif($znak == feof($fI)) $repeat = 0;
+                else {
+                    fwrite($fO, $znak);
+                    break;
+                }
+                break;
+            case 1:
+                if (preg_match("/[a-zA-Z_]/", $znak)) $state = 2;
+                else {
+                    fprintf(STDERR, "Syntakticka chyba");
+                    return 55;
+                }
+                break;
+            case 2:
+                if (preg_match("/[0-9a-zA-Z_]/", $znak)) $state = 2;
+                else {
+                    $state = 0;
+                    fseek($fI, -1, SEEK_CUR);
+                }
+                break;
+            case 3:
+                if($znak == '}' && $counter == 0){
+                    $state = 0;
+                    break;
+                }
+                elseif($znak == '}' && $counter != 0){
+                    $counter--;
+                }
+                elseif($znak == '{'){
+                    $counter++;
+                }
+                elseif($znak == '@'){
+                    $znak = fgetc($fI);
+                    if ($znak == '@');
+                    elseif ($znak == '{');
+                    elseif ($znak == '}');
+                    elseif ($znak == '$');
+                    else{
+                        fseek($fI, -1, SEEK_CUR);
+                        fwrite($fO, "@");
+                    }
+                }
+                elseif($znak == '\n'){
+                    fprintf(STDERR, "Chyba bloku");
+                    echo "chyba";
+                    return 55;
+                }
+                //else echo "never happen";
+                //echo $counter;
+                fwrite($fO, $znak);
+                $state = 3;
+                break;
+
+        }
+    }
+
 }
+
 ?>
 
