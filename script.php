@@ -23,12 +23,10 @@ function handleArguments($argc, $argv)
             $nameI = $match1[1];
             $GLOBALS['fileI'] = $nameI;
             $countI += 1;
-            //echo "dostal jsem input : " . $nameI . "\n";
         } elseif ((preg_match($output, $argv[$i], $match2)) && ($countO == 0)) {
             $nameO = $match2[1];
             $GLOBALS['fileO'] = $nameO;
             $countO += 1;
-            //echo "dostal jsem output : " . $nameO . "\n";
         } elseif ($argv[$i] == "-r") {
             echo "redefinition \n";
         } elseif (preg_match($text, $argv[$i], $match)) {
@@ -47,9 +45,8 @@ $fileO = "";
 if (($argv[1] == "--help") && ($argc == 2)) echo "help";
 else {
     if (handleArguments($argc, $argv)) {
-        echo "probehlo ok\n";
-        echo $GLOBALS['fileO'];
-        echo $GLOBALS['fileI'];
+        echo "vystupni soubor :\t" . $GLOBALS['fileO'] . "\n";
+        echo "vstupni soubor :\t" . $GLOBALS['fileI'] . "\n";
     } else{
         echo "bad";
         return 1;
@@ -87,24 +84,41 @@ else {
                     fprintf(STDERR, "Syntakticka chyba\n");
                     return 55;
                 }
-                elseif($znak == feof($fI)) $repeat = 0;
+                elseif(feof($fI)) $repeat = 0;
                 else {
                     fwrite($fO, $znak);
                     break;
                 }
                 break;
             case 1:
-                if (preg_match("/[a-zA-Z_]/", $znak)) $state = 2;
+                if (preg_match("/[a-zA-Z_]/", $znak)) {
+                    $state = 2;
+                    $makro = "";
+                    $makro .= $znak;
+                }
                 else {
                     fprintf(STDERR, "Syntakticka chyba");
                     return 55;
                 }
                 break;
             case 2:
-                if (preg_match("/[0-9a-zA-Z_]/", $znak)) $state = 2;
+                if (preg_match("/[0-9a-zA-Z_]/", $znak)) { 
+                    $state = 2;
+                    $makro .= $znak;
+                }
                 else {
                     $state = 0;
                     fseek($fI, -1, SEEK_CUR);
+                    if(($makro == "def") || ($makro == "__def__")) {
+                        echo $makro;
+                    }
+                    elseif(($makro == "undef") || ($makro == "__undef__")) {
+                        echo $makro;
+                    }
+                    elseif (($makro == "set") || ($makro == "__set__")) {
+                        echo $makro;
+                    }
+                    else echo $makro;
                 }
                 break;
             case 3:
@@ -129,19 +143,18 @@ else {
                         fwrite($fO, "@");
                     }
                 }
-                elseif($znak == '\n'){
+                elseif(($znak == "\n") || feof($fI)){
                     fprintf(STDERR, "Chyba bloku");
-                    echo "chyba";
                     return 55;
                 }
-                //else echo "never happen";
+                
                 //echo $counter;
                 fwrite($fO, $znak);
                 $state = 3;
                 break;
-
         }
     }
+    return 0;
 
 }
 
