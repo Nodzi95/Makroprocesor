@@ -83,10 +83,9 @@ foreach ($table as $key2 => $value2) {
 			}
 		}
 	}
-	else echo "nope";
 }
 //*******************
-
+print_r($table);
 
 
 

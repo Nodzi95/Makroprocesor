@@ -11,6 +11,44 @@ function checkArgument($arg)
     return;
 }
 
+function getArgument($fp){
+
+    $state = 0;
+    $repeat = true;
+    $argument = "";
+    $znak = '';
+    while($repeat){
+        $znak = fgetc($fp);
+        switch($state){
+        case 0:
+            if($znak == '$'){
+                $state = 1;
+                $argument .= $znak; 
+            }
+            break;
+        case 1:
+            if (preg_match("/[a-zA-Z_]/", $znak)){
+                $state = 2;
+                $argument .= $znak;
+            }
+            break;
+        case 2:
+            if (preg_match("/[a-zA-Z_]/", $znak)){
+                $state = 2;
+                $argument .= $znak;
+            }
+            else $repeat = false;
+            break;
+        default:
+            break;
+        }
+    }
+    
+
+    return $argument;
+}
+    
+
 function handleArguments($argc, $argv)
 {
     $input = "/--input=\"*(.*\.txt)\"*/";
