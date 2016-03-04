@@ -1,0 +1,3 @@
+@def@makro{$aba   $ne  $jo}{<b>$hovno</b>}asdasg 54@undef@__set__
+@def@makro3{}{<b>$hono</b>}
+@__def__@makro2{$aba   $ne  $jo$treba}{<b>$hono</b>}1
