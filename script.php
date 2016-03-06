@@ -1,17 +1,14 @@
 <?php
 /**
- * Created by PhpStorm.
- *
+ * Created by xnodza00.
+ * Projekt do IPP - Makroprocesor
  **/
-function checkArgument($arg)
-{
-    $regex = "/^\{\\$[a-zA-Z_][0-9a-zA-Z_]*\}/";
-    if (preg_match($regex, $arg)) echo "cool";
-    else echo "badly";
-    return;
-}
 
 
+/** Vrati nazev makra
+* @param file pointer
+* @return string
+*/
 function getMakroName($fp){
 	$name = "";
 	$state = 0;
@@ -48,10 +45,90 @@ function getMakroName($fp){
 	return $name;
 }
 
+/** Vrati obsah bloku
+* @param file pointer $fp
+* @return string $set
+*/
+function getSetArgument($fp){
+	$set = "";
+	while(($znak = fgetc($fp)) != "}"){
+		if(feof($fp)){
+			fprintf(STDERR, "Syntakticka chyba: neocekavany konec souboru");
+            exit(55);
+		}
+		elseif($znak == "\n"){
+            fprintf(STDERR, "Syntakticka chyba: neocekavany konec radku");
+            exit(55);
+        }
+        else{
+        	$set .= $znak;
+        }
+	}
+	return $set;
+}
+
+/** Vrati nazev argumentu
+* @param file pointer $fp
+* @return string $argument
+*/
+function setArgument($fp, $table){
+	$argument = "";
+	$repeat = true;
+	$state = 0;
+	$znak = fgetc($fp);
+	if($znak == "{"){
+		$argument = getSetArgument($fp);
+	}
+	elseif(feof($fp)){
+		fprintf(STDERR, "Syntakticka chyba: neocekavany konec vstupu pri nacitani argumentu");
+        exit(55);
+	}
+	elseif ($znak == "@") {
+		$makro = getMakroName($fp);
+		if(isset($table[$makro])){
+			$argument = expansion($fp, $makro, $table);
+		}
+		else{
+			fprintf(STDERR, "Semanticka chyba: makro: @".$makro." neni definovane");
+        	exit(56);
+		}
+	}
+	else $argument = $znak;
+	return $argument;
+
+}
+
+/** Vrati expandovane makro na retezec
+* @param file pointer $fp
+* @return string $expansion
+*/
+function expansion($fp, $makroName, $table){
+	$counter = $table[$makroName]['counter'];
+	$expansion = $table[$makroName]['result'];
+	foreach ($table[$makroName] as $argument => $hodnota) {
+		if($counter != 0){
+			$hodnota = setArgument($fp, $table);
+			$counter--;
+		}
+		else break;
+		$pos = strpos($expansion, $argument);
+		if($pos !== false){
+			$expansion = str_replace($argument, $hodnota, $expansion);
+		}
+	}
+	return $expansion;
+}
+
+/** Vrati obsah 3. argumentu makra @def
+* @param file pointer $fp
+* @return string $result
+*/
 function getResult($fp){
 
     $result = "";
-    while(($znak = fgetc($fp)) != "}"){
+    $counter = 0;
+    while(1){
+    	$znak = fgetc($fp);
     	if(feof($fp)){
     		fprintf(STDERR, "Syntakticka chyba: neocekavany konec souboru");
             exit(55);
@@ -69,13 +146,27 @@ function getResult($fp){
                 fseek($fp, -1, SEEK_CUR);
                 $result .= "@";
             }
-
+        }
+        elseif ($znak == "}" && $counter == 0) {
+        	break;
+        }
+        elseif ($znak == "{") {
+        	$counter++;
+        	$result .= $znak;
+        }
+        elseif ($znak == "}") {
+        	$counter--;
+        	$result .= $znak;
         }
         else $result .= $znak;
     }
     return $result;
 }
 
+/** Vrati argument
+* @param file pointer $fp
+* @return string $argument
+*/
 function getArgument($fp){
 
     $state = 0;
@@ -118,22 +209,37 @@ function getArgument($fp){
     
     return $argument;
 }
-    
+
+/** Vrati 1 pokud zpracovani prepinacu problehlo spravne
+* @param int $argc
+* @param int* $argv
+* @return int
+*/    
 function handleArguments($argc, $argv)
 {
-    $input = "/--input=\"*(.*\.txt)\"*/";
-    $output = "/--output=\"*(.*\.txt)\"*/";
+    $input = "/--input=\"*(.*)\"*/";
+    $output = "/--output=\"*(.*)\"*/";
     $text = "/--cmd=(.*)/";
     $countI = 0;
     $countO = 0;
     for ($i = 1; $i < $argc; $i++) {
         if ((preg_match($input, $argv[$i], $match1)) && ($countI == 0)) {
-            $nameI = $match1[1];
-            $GLOBALS['fileI'] = $nameI;
+        	if($match1[1] == ""){
+        		$GLOBALS['fileI'] = null;
+        	}
+        	else{
+        		$nameI = $match1[1];
+            	$GLOBALS['fileI'] = $nameI;
+        	}
             $countI += 1;
         } elseif ((preg_match($output, $argv[$i], $match2)) && ($countO == 0)) {
-            $nameO = $match2[1];
-            $GLOBALS['fileO'] = $nameO;
+            if($match2[1] == ""){
+        		$GLOBALS['fileO'] = null;
+        	}
+        	else{
+        		$nameO = $match2[1];
+            	$GLOBALS['fileO'] = $nameO;
+        	}
             $countO += 1;
         } elseif ($argv[$i] == "-r") {
             echo "redefinition \n";
@@ -150,18 +256,37 @@ function handleArguments($argc, $argv)
 $GLOBALS['fileI'] = "";
 $GLOBALS['fileO'] = "";
 $fileO = "";
-if (($argv[1] == "--help") && ($argc == 2)) echo "help";
+if (($argv[1] == "--help") && ($argc == 2)){ 
+	echo "Pro zadani vstupniho souboru je prepinac --intput=vas_vstupni_soubor.\nPro zadani vystupniho souboru je prepinac --output=vas_vystupni_soubor.\nPro vlozeni textu na zacatek vystupniho souboru je prepinac --cmd=vas_text.\nPro redefinici makra je prepinac -r\n";
+}
 else {
     if (handleArguments($argc, $argv)) {
         //echo "vystupni soubor :\t" . $GLOBALS['fileO'] . "\n";
         //echo "vstupni soubor :\t" . $GLOBALS['fileI'] . "\n";
     } else{
         echo "bad";
-        return 1;
+        exit(1);
     }
 
-    $fO = fopen($GLOBALS['fileO'], "w");
-    $fI = fopen($GLOBALS['fileI'], "r");
+    if (!$GLOBALS['fileO']) {
+    	$fO = STDOUT;
+    }
+    elseif($fO = fopen($GLOBALS['fileO'], "w"));
+    else{
+    	fprintf(STDERR, "Chyba souboru: chyba pri pokusu o otevreni vystupniho souboru");
+        exit(3);
+    }
+
+    if(!$GLOBALS['fileI']) {
+    	$fI = STDIN;
+    }
+    elseif(file_exists($GLOBALS['fileI'])){
+    	$fI = fopen($GLOBALS['fileI'], "r");
+    }
+    else{
+    	fprintf(STDERR, "Chyba souboru: chyba pri pokusu o otevreni vstupniho souboru");
+        exit(3);
+    }
     $table = array();
 
 
@@ -173,7 +298,7 @@ else {
         switch ($state) {
             case 0:
                 if ($znak == '$') {
-                    fprintf(STDERR, "Syntakticka chyba\n");
+                    fprintf(STDERR, "Syntakticka chyba 1\n");
                     return 55;
                 } elseif ($znak == '@') {
                     $znak = fgetc($fI);
@@ -191,7 +316,7 @@ else {
                     $state = 3;
                     break;
                 } elseif ($znak == '}') {
-                    fprintf(STDERR, "Syntakticka chyba\n");
+                    fprintf(STDERR, "Syntakticka chyba 2\n");
                     return 55;
                 }
                 elseif(feof($fI)) $repeat = 0;
@@ -302,7 +427,7 @@ else {
 		            exit(55);
 		    	}
 		        elseif($znak == "\n"){
-		            fprintf(STDERR, "Syntakticka chyba: neocekavany konec radkus");
+		            fprintf(STDERR, "Syntakticka chyba: neocekavany konec radku");
 		            exit(55);
 		        }
 		        else {
@@ -313,6 +438,20 @@ else {
             case 42:
             	if($znak == "{"){
             		$result = getResult($fI);
+            		$test = false;
+            		//print_r($nameMakro);
+            		if(preg_match_all('/([$][a-zA-Z_][0-9a-zA-Z_]*)/', $result, $m)){
+						foreach ($m[0] as $key => $value) {
+							foreach ($nameMakro as $key2 => $value2) {
+								if($value == $key2) $test = true;
+							}
+						}
+						if(!$test){
+							fprintf(STDERR, "Syntakticka chyba: nedefinovany argument v makru: @".$name);
+		            		exit(55);
+						}
+					}
+
             		$nameMakro['result'] = $result;
             		$table[$name] = $nameMakro;
             		//echo "vysledek makra: " . $result . "\n";
@@ -328,20 +467,52 @@ else {
             	if($znak == "@"){
             		$delMakro = getMakroName($fI);
             		if($delMakro == "def" || $delMakro == "__def__" || $delMakro == "undef" || $delMakro == "__undef__" || $delMakro == "set" || $delMakro == "__set__"){
-            			fprintf(STDERR, "Syntakticka chyba: nelze zrusit makro: @". $delMakro);
-            	    	exit(55);
+            			fprintf(STDERR, "Chyba: nelze zrusit makro: @". $delMakro);
+            	    	exit(57);
             		}
             		unset($table[$delMakro]);
             		$state = 0;
             	}
             	else{
-            		fprintf(STDERR, "Syntakticka chyba: makro @undef ocekava jako parametr nazev makra");
-            		exit(55);
+            		fprintf(STDERR, "Semanticka chyba: makro @undef ocekava jako parametr nazev makra");
+            		exit(56);
             	}
+            	break;
+            case 6:
+            	if($znak == "{"){
+            		$set = getSetArgument($fI);
+            		if($set == "-INPUT_SPACES"){
+            			$white = true;
+            		}
+            		elseif ($set == "+INPUT_SPACES") {
+            			$white = false;
+            		}
+            		else{
+            			fprintf(STDERR, "Semanticka chyba: makro @set ocekava jako parametr +INPUT_SPACES nebo -INPUT_SPACES");
+            			exit(56);
+            		}
+            	}
+            	else{
+            		fprintf(STDERR, "Semanticka chyba: makro @set ocekava jako parametr blok");
+            		exit(56);
+            	}
+            	$state = 0;
+            	break;
+            case 7:
+            	fseek($fI, -1, SEEK_CUR);
+            	if(isset($table[$makro])){
+            		$final = expansion($fI, $makro, $table);
+            		fwrite($fO, $final);
+            	}
+            	else{
+            		fprintf(STDERR, "Semanticka chyba: makro @". $makro ." neexistuje");
+            		exit(56);
+            	}
+            	$state = 0;
             	break;
         }
     }
-    print_r($table);
+    //print_r($table);
     return 0;
 
 }
