@@ -51,7 +51,8 @@ function getMakroName($fp){
 */
 function getSetArgument($fp){
 	$set = "";
-	while(($znak = fgetc($fp)) != "}"){
+	while(1){
+		$znak = fgetc($fp);
 		if(feof($fp)){
 			fprintf(STDERR, "Syntakticka chyba: neocekavany konec souboru");
             exit(55);
@@ -59,6 +60,9 @@ function getSetArgument($fp){
 		elseif($znak == "\n"){
             fprintf(STDERR, "Syntakticka chyba: neocekavany konec radku");
             exit(55);
+        }
+        elseif ($znak == "}") {
+        	break;
         }
         else{
         	$set .= $znak;
@@ -316,8 +320,8 @@ else {
                     $state = 3;
                     break;
                 } elseif ($znak == '}') {
-                    fprintf(STDERR, "Syntakticka chyba 2\n");
-                    return 55;
+                    fprintf(STDERR, "Syntakticka chyba: chybi znak '{' ?\n");
+                    exit(55);
                 }
                 elseif(feof($fI)) $repeat = 0;
                 else {
@@ -332,8 +336,8 @@ else {
                     $makro .= $znak;
                 }
                 else {
-                    fprintf(STDERR, "Syntakticka chyba");
-                    return 55;
+                    fprintf(STDERR, "Syntakticka chyba: nepovoleny nazev makra");
+                    exit(55);
                 }
                 break;
             case 2:
@@ -377,8 +381,8 @@ else {
                     }
                 }
                 elseif(($znak == "\n") || feof($fI)){
-                    fprintf(STDERR, "Chyba bloku");
-                    return 55;
+                    fprintf(STDERR, "Syntakticka chyba: neocekavany konec bloku");
+                    exit(55);
                 }
                 fwrite($fO, $znak);
                 $state = 3;
@@ -438,10 +442,10 @@ else {
             case 42:
             	if($znak == "{"){
             		$result = getResult($fI);
-            		$test = false;
             		//print_r($nameMakro);
             		if(preg_match_all('/([$][a-zA-Z_][0-9a-zA-Z_]*)/', $result, $m)){
 						foreach ($m[0] as $key => $value) {
+							$test = false;
 							foreach ($nameMakro as $key2 => $value2) {
 								if($value == $key2) $test = true;
 							}
@@ -499,8 +503,8 @@ else {
             	$state = 0;
             	break;
             case 7:
-            	fseek($fI, -1, SEEK_CUR);
             	if(isset($table[$makro])){
+            			fseek($fI, -1, SEEK_CUR);
             		$final = expansion($fI, $makro, $table);
             		fwrite($fO, $final);
             	}

@@ -1,3 +1,1 @@
-@def@makro{$a}{-$a-}@makro{ahoja}
-sd
-sd
+@def@x{}{ahoj}@x
