@@ -1,2 +1,0 @@
-# Makroprocesor
-Projekt do IPP
