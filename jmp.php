@@ -23,7 +23,7 @@ function getMakroName($fp){
 				}
 				else{
 					fprintf(STDERR, "Syntakticka chyba: chybny nazev makra\n");
-					fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+					fclose($fp);
             		exit(55);
 				}
 				break;
@@ -56,12 +56,12 @@ function getSetArgument($fp){
 		$znak = fgetc($fp);
 		if(feof($fp)){
 			fprintf(STDERR, "Syntakticka chyba: neocekavany konec souboru\n");
-			fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+			fclose($fp);
             exit(55);
 		}
 		elseif($znak == "\n"){
             fprintf(STDERR, "Syntakticka chyba: neocekavany konec radku\n");
-            fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            fclose($fp);
             exit(55);
         }
         elseif ($znak == "}") {
@@ -90,7 +90,7 @@ function setArgument($fp, $table, $white){
         }
         elseif(feof($fp)){
             fprintf(STDERR, "Syntakticka chyba: neocekavany konec vstupu pri nacitani argumentu\n");
-            fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            fclose($fp);
             exit(55);
         }
         elseif (($white) && ($znak == "\n" || $znak == ' ' || $znak == "\t")) {
@@ -104,7 +104,7 @@ function setArgument($fp, $table, $white){
             }
             else{
                 fprintf(STDERR, "Semanticka chyba: makro: @".$makro." neni definovane\n");
-                fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+                fclose($fp);
                 exit(56);
             }
         }
@@ -151,14 +151,14 @@ function getResult($fp, $white){
     	$znak = fgetc($fp);
     	if(feof($fp)){
     		fprintf(STDERR, "Syntakticka chyba: neocekavany konec souboru\n");
-    		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+    		fclose($fp);
             exit(55);
     	}
         elseif (($white) && ($znak == "\n" || $znak == ' ' || $znak == "\t")) {
         }
         elseif($znak == "\n"){
             fprintf(STDERR, "Syntakticka chyba: neocekavany konec radku\n");
-            fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            fclose($fp);
             exit(55);
         }
         elseif($znak == "@"){
@@ -213,7 +213,7 @@ function getArgument($fp){
             }
             else{
             	fprintf(STDERR, "Syntakticka chyba: spatne zapsany argument\n");
-            	fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            	fclose($fp);
             	exit(55);
             }
             break;
@@ -335,7 +335,7 @@ else {
             case 0:
                 if ($znak == '$') {
                     fprintf(STDERR, "Syntakticka chyba: na vstupu se objevil znak '$'\n");
-                    fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+                    fclose($fI);    fclose($fO);
                     exit(55);
                 } elseif ($znak == '@') {
                     $znak = fgetc($fI);
@@ -348,13 +348,17 @@ else {
                         $state = 1;
                     }
                     break;
+                }
+                elseif ($znak == '#') {
+                    $state = 8;
+                    break;
                 } elseif ($znak == '{') {
                     $counter = 0;
                     $state = 3;
                     break;
                 } elseif ($znak == '}') {
                     fprintf(STDERR, "Syntakticka chyba: chybi znak '{' ?\n");
-                    fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+                    fclose($fI);    fclose($fO);
                     exit(55);
                 }
                 elseif (($white) && ($znak == "\n" || $znak == ' ' || $znak == "\t")) {
@@ -374,7 +378,7 @@ else {
                 }
                 else {
                     fprintf(STDERR, "Syntakticka chyba: nepovoleny nazev makra\n");
-                    fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+                    fclose($fI);    fclose($fO);
                     exit(55);
                 }
                 break;
@@ -420,7 +424,7 @@ else {
                 }
                 elseif(feof($fI)){
                     fprintf(STDERR, "Syntakticka chyba: neocekavany konec bloku\n");
-                    fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+                    fclose($fI);    fclose($fO);
                     exit(55);
                 }
                 fwrite($fO, $znak);
@@ -438,7 +442,7 @@ else {
                 }
             	else{
             		fprintf(STDERR, "Syntakticka chyba: makro @def ocekava jako 1. parametr nazev makra\n");
-            		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            		fclose($fI);  fclose($fO);
             		exit(55);
             	}
             	break;
@@ -452,7 +456,7 @@ else {
                 }
             	else {
             		fprintf(STDERR, "Syntakticka chyba: makro @def ocekava jako 2. parametr blok\n");
-            		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            		fclose($fI);  fclose($fO);
             	    exit(55);
             	}
             	break;
@@ -478,17 +482,17 @@ else {
             	}
             	elseif(feof($fI)){
 		    		fprintf(STDERR, "Syntakticka chyba: neocekavany konec souboru\n");
-		    		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+		    		fclose($fI);    fclose($fO);
 		            exit(55);
 		    	}
 		        elseif($znak == "\n"){
 		            fprintf(STDERR, "Syntakticka chyba: neocekavany konec radku\n");
-		            fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+		            fclose($fI);  fclose($fO);
 		            exit(55);
 		        }
 		        else {
             		fprintf(STDERR, "Syntakticka chyba: neocekavany znak: " . $znak . " pri nacitani argumentu\n");
-            		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            		fclose($fI);  fclose($fO);
                     exit(55);
             	}
             	break;
@@ -505,7 +509,7 @@ else {
 						}
 						if(!$test){
 							fprintf(STDERR, "Syntakticka chyba: nedefinovany argument v makru: @".$name."\n");
-							fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+							fclose($fI); fclose($fO);
 		            		exit(55);
 						}
 					}
@@ -521,7 +525,7 @@ else {
                 }
             	else{
             		fprintf(STDERR, "Syntakticka chyba: makro @def ocekava jako 3. parametr blok\n");
-            		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            		fclose($fI);  fclose($fO);
             	    exit(55);
             	}
             	break;
@@ -530,7 +534,7 @@ else {
             		$delMakro = getMakroName($fI);
             		if($delMakro == "def" || $delMakro == "__def__" || $delMakro == "undef" || $delMakro == "__undef__" || $delMakro == "set" || $delMakro == "__set__"){
             			fprintf(STDERR, "Chyba: nelze zrusit makro: @". $delMakro);
-            			fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            			fclose($fI); fclose($fO);
             	    	exit(57);
             		}
             		unset($table[$delMakro]);
@@ -538,7 +542,7 @@ else {
             	}
             	else{
             		fprintf(STDERR, "Semanticka chyba: makro @undef ocekava jako parametr nazev makra\n");
-            		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            		fclose($fI);  fclose($fO);
             		exit(56);
             	}
             	break;
@@ -553,13 +557,13 @@ else {
             		}
             		else{
             			fprintf(STDERR, "Semanticka chyba: makro @set ocekava jako parametr +INPUT_SPACES nebo -INPUT_SPACES\n");
-            			fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            			fclose($fI); fclose($fO);
             			exit(56);
             		}
             	}
             	else{
             		fprintf(STDERR, "Semanticka chyba: makro @set ocekava jako parametr blok\n");
-            		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            		fclose($fI);  fclose($fO);
             		exit(56);
             	}
             	$state = 0;
@@ -578,15 +582,21 @@ else {
             	}
             	else{
             		fprintf(STDERR, "Semanticka chyba: makro @". $makro ." neexistuje\n");
-            		fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+            		fclose($fI);  fclose($fO);
             		exit(56);
             	}
             	$state = 0;
             	break;
+            case 8:
+                if($znak == "\n"){
+                    $state = 0;
+                }
+                else $state = 8;
+                break;
         }
     }
     //print_r($table);
-    fclose($GLOBALS['fileI']);	fclose($GLOBALS['fileO']);
+    fclose($fI);	fclose($fO);
     return 0;
 
 }
